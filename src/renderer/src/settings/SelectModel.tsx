@@ -18,8 +18,7 @@ const defaultModels = [
   { value: 'Qwen/Qwen3-VL-8B-Thinking', label: 'Qwen/Qwen3-VL-8B-Thinking' },
   { value: 'zai-org/GLM-4.6V', label: 'zai-org/GLM-4.6V' },
   { value: 'gpt-5-mini', label: 'gpt-5-mini' },
-  { value: 'gpt-5.1-codex', label: 'gpt-5.1-codex' },
-  { value: 'gpt-5.2', label: 'gpt-5.2' }
+  { value: 'gpt-5.4', label: 'gpt-5.4' }
 ]
 
 export function SelectModel({
