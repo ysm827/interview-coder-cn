@@ -1,5 +1,6 @@
 import { BookOpen } from 'lucide-react'
 import ShortcutRenderer from '@/components/ShortcutRenderer'
+import { platformAlt } from '@/lib/utils/env'
 import { HelpSection } from './components'
 
 const faqs = [
@@ -8,7 +9,7 @@ const faqs = [
     answer: (
       <span>
         按下
-        <ShortcutRenderer shortcut="Alt+Enter" className="text-xs mx-1" />
+        <ShortcutRenderer shortcut={`${platformAlt}+Enter`} className="text-xs mx-1" />
         快捷键即可截取当前屏幕的截图。截图会自动显示在应用中。
       </span>
     )
@@ -18,7 +19,7 @@ const faqs = [
     answer: (
       <span>
         按下
-        <ShortcutRenderer shortcut="Alt+Shift+Enter" className="text-xs mx-1" />
+        <ShortcutRenderer shortcut={`${platformAlt}+Shift+Enter`} className="text-xs mx-1" />
         快捷键即可在当前对话中追加截图并生成解题建议。
       </span>
     )
@@ -45,7 +46,8 @@ const faqs = [
     answer: (
       <span>
         本工具提供了开关，可以开启或关闭鼠标穿透。开启鼠标穿透时，窗口对鼠标隐身，你需要通过快捷键来操作窗口。切换「鼠标穿透」开关的快捷键是{' '}
-        <ShortcutRenderer shortcut="Alt+M" className="text-xs" /> 。窗口右下角会显示当前状态。
+        <ShortcutRenderer shortcut={`${platformAlt}+M`} className="text-xs" />{' '}
+        。窗口右下角会显示当前状态。
       </span>
     )
   }

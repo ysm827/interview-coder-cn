@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { isMac, platformAlt } from '../utils/env'
 
 export type Shortcut = {
   action: string
@@ -37,23 +38,27 @@ function isPersistedShortcutsState(value: unknown): value is PersistedShortcutsS
 const defaultShortcuts: Record<string, Omit<Shortcut, 'defaultKey'>> = {
   hideOrShowMainWindow: {
     action: 'hideOrShowMainWindow',
-    key: 'Alt+H',
+    key: `${platformAlt}+H`,
     category: 'Window Management'
   },
   ignoreOrEnableMouse: {
     action: 'ignoreOrEnableMouse',
-    key: 'Alt+M',
+    key: `${platformAlt}+M`,
     category: 'Window Management'
   },
-  takeScreenshot: { action: 'takeScreenshot', key: 'Alt+Enter', category: 'Screenshot & AI' },
+  takeScreenshot: {
+    action: 'takeScreenshot',
+    key: `${platformAlt}+Enter`,
+    category: 'Screenshot & AI'
+  },
   appendScreenshot: {
     action: 'appendScreenshot',
-    key: 'Alt+Shift+Enter',
+    key: `${platformAlt}+Shift+Enter`,
     category: 'Screenshot & AI'
   },
   stopSolutionStream: {
     action: 'stopSolutionStream',
-    key: 'Alt+.',
+    key: `${platformAlt}+.`,
     category: 'Screenshot & AI'
   },
   pageUp: { action: 'pageUp', key: 'CommandOrControl+J', category: 'Navigation' },
@@ -113,8 +118,8 @@ export const useShortcutsStore = create<ShortcutsStore>()(
     }),
     {
       name: 'interview-coder-shortcuts',
-      version: 2,
-      migrate: (state: unknown) => {
+      version: 3,
+      migrate: (state: unknown, version: number) => {
         if (!isPersistedShortcutsState(state) || !state.shortcuts) return state as ShortcutsStore
         // Merge in any new default shortcuts that are missing
         const defaults = Object.fromEntries(
@@ -123,13 +128,26 @@ export const useShortcutsStore = create<ShortcutsStore>()(
             { ...shortcut, defaultKey: shortcut.key }
           ])
         )
-        return {
+        const merged = {
           ...state,
           shortcuts: {
             ...defaults,
             ...state.shortcuts
           }
         } as ShortcutsStore
+
+        // v2→v3: On Windows, migrate Alt shortcuts to CommandOrControl (Ctrl)
+        if (version < 3 && !isMac) {
+          for (const [action, shortcut] of Object.entries(merged.shortcuts)) {
+            merged.shortcuts[action] = {
+              ...shortcut,
+              key: shortcut.key.replace(/\bAlt\b/g, 'CommandOrControl'),
+              defaultKey: shortcut.defaultKey.replace(/\bAlt\b/g, 'CommandOrControl')
+            }
+          }
+        }
+
+        return merged
       }
     }
   )

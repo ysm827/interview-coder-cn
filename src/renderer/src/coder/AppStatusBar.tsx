@@ -79,14 +79,14 @@ export function AppStatusBar() {
           <div className="flex items-center space-x-2 pointer-events-none opacity-50 text-sm gap-1">
             <span>
               <ShortcutRenderer
-                shortcut="Shift+Alt+Enter"
+                shortcut={shortcuts.appendScreenshot.key}
                 className="inline-block scale-75 text-xs border border-current bg-transparent py-0 px-1 ml-1"
               />
               追加截图
             </span>
             <span>
               <ShortcutRenderer
-                shortcut="Alt+Enter"
+                shortcut={shortcuts.takeScreenshot.key}
                 className="inline-block scale-75 text-xs border border-current bg-transparent py-0 px-1"
               />
               新开对话
