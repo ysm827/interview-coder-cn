@@ -11,6 +11,9 @@ interface Settings {
 
   opacity: number
   codeLanguage: string
+
+  screenshotAutoSave: boolean
+  screenshotDir: string
 }
 
 interface SettingsStore extends Settings {
@@ -26,7 +29,10 @@ const defaultSettings: Settings = {
   customPrompt: '',
   codeLanguage: '',
 
-  opacity: 0.8
+  opacity: 0.8,
+
+  screenshotAutoSave: false,
+  screenshotDir: ''
 }
 
 export const useSettingsStore = create<SettingsStore>()(

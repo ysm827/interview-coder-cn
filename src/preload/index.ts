@@ -133,7 +133,10 @@ const api = {
   },
   removeSolutionClearListener: () => {
     ipcRenderer.removeAllListeners('solution-clear')
-  }
+  },
+
+  // Select screenshot save directory
+  selectScreenshotDir: () => ipcRenderer.invoke('selectScreenshotDir') as Promise<string | null>
 }
 
 export type MainAPI = typeof api

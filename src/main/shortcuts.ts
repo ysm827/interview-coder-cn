@@ -2,6 +2,7 @@ import { globalShortcut, ipcMain } from 'electron'
 import type { BrowserWindow } from 'electron'
 import type { ModelMessage } from 'ai'
 import { takeScreenshot } from './take-screenshot'
+import { saveScreenshotToDisk } from './save-screenshot'
 import { getSolutionStream, getFollowUpStream, getGeneralStream } from './ai'
 import { state } from './state'
 import { settings } from './settings'
@@ -143,6 +144,7 @@ const callbacks: Record<string, () => void> = {
     let loadingStarted = false
     const screenshotData = await takeScreenshot()
     if (screenshotData && mainWindow && !mainWindow.isDestroyed()) {
+      saveScreenshotToDisk(screenshotData)
       conversationMessages = [
         {
           role: 'user',
@@ -250,6 +252,7 @@ const callbacks: Record<string, () => void> = {
 
     const screenshotData = await takeScreenshot()
     if (screenshotData && mainWindow && !mainWindow.isDestroyed()) {
+      saveScreenshotToDisk(screenshotData)
       // Append new image message to conversation
       const newUserMessage: ModelMessage = {
         role: 'user',
