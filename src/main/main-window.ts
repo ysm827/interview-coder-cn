@@ -3,6 +3,16 @@ import { shell, app, BrowserWindow } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+export function applyContentProtection(window: BrowserWindow, forceReset = false): void {
+  if (!window || window.isDestroyed()) return
+
+  if (forceReset && process.platform === 'win32') {
+    window.setContentProtection(false)
+  }
+
+  window.setContentProtection(true)
+}
+
 export function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -33,7 +43,7 @@ export function createWindow(): void {
     mainWindow.setAlwaysOnTop(true, 'screen-saver', 1)
     mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
     app.dock?.show()
-    mainWindow.setContentProtection(true)
+    applyContentProtection(mainWindow)
 
     // Reclaim top position when other apps steal it
     mainWindow.on('always-on-top-changed', (_event, isAlwaysOnTop) => {
@@ -42,6 +52,10 @@ export function createWindow(): void {
         mainWindow.setAlwaysOnTop(true, 'screen-saver', 1)
       }
     })
+  })
+
+  mainWindow.on('show', () => {
+    applyContentProtection(mainWindow)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

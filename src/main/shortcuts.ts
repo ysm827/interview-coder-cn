@@ -1,6 +1,7 @@
-import { globalShortcut, ipcMain } from 'electron'
-import type { BrowserWindow } from 'electron'
+import { globalShortcut, ipcMain, screen } from 'electron'
+import type { BrowserWindow, Rectangle } from 'electron'
 import type { ModelMessage } from 'ai'
+import { applyContentProtection } from './main-window'
 import { takeScreenshot } from './take-screenshot'
 import { saveScreenshotToDisk } from './save-screenshot'
 import { getSolutionStream, getFollowUpStream, getGeneralStream } from './ai'
@@ -81,6 +82,8 @@ const FRONT_RELATIVE_LEVEL = 100
 const BACKGROUND_GUARD_INTERVAL = 2000
 let frontReassertTimer: NodeJS.Timeout | null = null
 let backgroundGuardTimer: NodeJS.Timeout | null = null
+let isWindowSoftHidden = false
+let softHiddenBounds: Rectangle | null = null
 
 /**
  * Reassert always-on-top. `aggressive` also calls moveTop() which
@@ -115,6 +118,64 @@ function stopBackgroundGuard() {
     clearInterval(backgroundGuardTimer)
     backgroundGuardTimer = null
   }
+}
+
+function stopFrontReassert() {
+  if (frontReassertTimer) {
+    clearInterval(frontReassertTimer)
+    frontReassertTimer = null
+  }
+}
+
+function getOffscreenBounds(window: BrowserWindow): Rectangle {
+  const displays = screen.getAllDisplays()
+  const maxRight = Math.max(...displays.map((display) => display.bounds.x + display.bounds.width))
+  const topMost = Math.min(...displays.map((display) => display.bounds.y))
+  const [width, height] = window.getSize()
+
+  return {
+    x: maxRight + 2000,
+    y: topMost,
+    width,
+    height
+  }
+}
+
+function softHideWindow(window: BrowserWindow) {
+  if (isWindowSoftHidden || window.isDestroyed()) return
+
+  stopFrontReassert()
+  stopBackgroundGuard()
+  softHiddenBounds = window.getBounds()
+  isWindowSoftHidden = true
+
+  window.setOpacity(0)
+  window.setIgnoreMouseEvents(true)
+  window.setBounds(getOffscreenBounds(window))
+}
+
+function restoreSoftHiddenWindow(window: BrowserWindow) {
+  if (!isWindowSoftHidden || !softHiddenBounds || window.isDestroyed()) return
+
+  applyContentProtection(window, true)
+  window.setBounds(softHiddenBounds)
+  window.setIgnoreMouseEvents(state.ignoreMouse)
+  window.setOpacity(1)
+
+  isWindowSoftHidden = false
+  softHiddenBounds = null
+  keepWindowInFront(window)
+}
+
+function showMainWindow(window: BrowserWindow) {
+  if (process.platform === 'darwin' || process.platform === 'win32') {
+    window.showInactive()
+  } else {
+    window.show()
+  }
+
+  applyContentProtection(window, process.platform === 'win32')
+  keepWindowInFront(window)
 }
 
 function keepWindowInFront(window: BrowserWindow) {
@@ -158,17 +219,28 @@ const callbacks: Record<string, () => void> = {
   hideOrShowMainWindow: async () => {
     const mainWindow = global.mainWindow
     if (!mainWindow || mainWindow.isDestroyed()) return
+
+    if (process.platform === 'win32') {
+      if (isWindowSoftHidden) {
+        restoreSoftHiddenWindow(mainWindow)
+        return
+      }
+
+      if (!mainWindow.isVisible()) {
+        showMainWindow(mainWindow)
+        return
+      }
+
+      softHideWindow(mainWindow)
+      return
+    }
+
     if (mainWindow.isVisible()) {
       stopBackgroundGuard()
       mainWindow.hide()
     } else {
       // 重新显示时不断重申置顶属性，抵消其他前台软件持续抢占
-      if (process.platform === 'darwin' || process.platform === 'win32') {
-        mainWindow.showInactive()
-      } else {
-        mainWindow.show()
-      }
-      keepWindowInFront(mainWindow)
+      showMainWindow(mainWindow)
     }
   },
 
