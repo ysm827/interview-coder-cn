@@ -9,7 +9,8 @@ import {
   Eye,
   EyeOff,
   Keyboard,
-  FolderOpen
+  FolderOpen,
+  Mic
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
@@ -30,9 +31,11 @@ export default function SettingsPage() {
     customPrompt,
     screenshotAutoSave,
     screenshotDir,
+    dashscopeApiKey,
     updateSetting
   } = useSettingsStore()
   const [showApiKey, setShowApiKey] = useState(false)
+  const [showDashscopeApiKey, setShowDashscopeApiKey] = useState(false)
   const [enableCustomPrompt, setEnableCustomPrompt] = useState(customPrompt.trim().length > 0)
 
   useEffect(() => {
@@ -121,6 +124,54 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        {/* Transcription Settings */}
+        <div className="bg-gray-300/80 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center">
+            <Mic className="h-5 w-5 mr-2" />
+            语音转录
+          </h2>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">
+                百炼平台 API Key
+                <span className="ml-2 text-xs font-light">
+                  从阿里云
+                  <a
+                    href="https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-0.5 text-blue-700 hover:underline"
+                  >
+                    百炼平台
+                  </a>
+                  获取，如不需要语音转录功能可跳过
+                </span>
+              </label>
+              <div className="flex items-center w-60">
+                <input
+                  type={showDashscopeApiKey ? 'text' : 'password'}
+                  value={dashscopeApiKey}
+                  onChange={(e) => updateSetting('dashscopeApiKey', e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="输入百炼平台 API Key"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowDashscopeApiKey(!showDashscopeApiKey)}
+                  className="border border-l-0 rounded-l-none rounded-r-md h-9 w-9 hover:border-none"
+                >
+                  {showDashscopeApiKey ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="bg-gray-300/80 rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center">
             <SquareTerminal className="h-5 w-5 mr-2" />
@@ -128,20 +179,6 @@ export default function SettingsPage() {
           </h2>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">
-                编程语言
-                {enableCustomPrompt && (
-                  <span className="ml-2 text-xs font-light">启用自定义提示词后，该选项失效</span>
-                )}
-              </label>
-              <SelectLanguage
-                value={codeLanguage}
-                onChange={(value) => updateSetting('codeLanguage', value)}
-                disabled={enableCustomPrompt}
-                className={enableCustomPrompt ? 'line-through' : ''}
-              />
-            </div>
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">
                 自定义提示词
@@ -155,14 +192,27 @@ export default function SettingsPage() {
                 onCheckedChange={handleCustomPromptToggle}
               />
             </div>
-            {enableCustomPrompt && (
+            {enableCustomPrompt ? (
               <div className="-mt-2">
                 <Textarea
                   value={customPrompt}
                   onChange={(e) => updateSetting('customPrompt', e.target.value)}
-                  placeholder="请输入自定义的提示词内容, 示例: 你是一个编程助手, 请根据截图给出编程相关的回答。"
+                  placeholder="请输入自定义的提示词内容, 示例: 你是一个编程助手, 请根据「截图」和「语音转录内容」给出相关回答。"
                   className="w-full min-h-24 bg-white"
                   rows={4}
+                />
+              </div>
+            ) : (
+              <div
+                className={`flex items-center justify-between ${enableCustomPrompt ? ' opacity-40 pointer-events-none' : ''}`}
+              >
+                <label className="text-sm font-medium">
+                  编程语言
+                  <span className="ml-2 text-xs font-light">启用自定义提示词后，该选项失效</span>
+                </label>
+                <SelectLanguage
+                  value={codeLanguage}
+                  onChange={(value) => updateSetting('codeLanguage', value)}
                 />
               </div>
             )}

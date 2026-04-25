@@ -61,6 +61,16 @@ const defaultShortcuts: Record<string, Omit<Shortcut, 'defaultKey'>> = {
     key: `${platformAlt}+.`,
     category: 'Screenshot & AI'
   },
+  toggleTranscription: {
+    action: 'toggleTranscription',
+    key: `${platformAlt}+T`,
+    category: 'Screenshot & AI'
+  },
+  clearTranscription: {
+    action: 'clearTranscription',
+    key: `${platformAlt}+Shift+T`,
+    category: 'Screenshot & AI'
+  },
   pageUp: { action: 'pageUp', key: 'CommandOrControl+J', category: 'Navigation' },
   pageDown: { action: 'pageDown', key: 'CommandOrControl+K', category: 'Navigation' },
   moveMainWindowUp: {
@@ -118,7 +128,7 @@ export const useShortcutsStore = create<ShortcutsStore>()(
     }),
     {
       name: 'interview-coder-shortcuts',
-      version: 3,
+      version: 4,
       migrate: (state: unknown, version: number) => {
         if (!isPersistedShortcutsState(state) || !state.shortcuts) return state as ShortcutsStore
         // Merge in any new default shortcuts that are missing

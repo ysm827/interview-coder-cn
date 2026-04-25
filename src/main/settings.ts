@@ -26,7 +26,8 @@ export const settings = {
   codeLanguage: process.env.CODE_LANGUAGE || 'typescript',
   customPrompt: '',
   screenshotAutoSave: false,
-  screenshotDir: ''
+  screenshotDir: '',
+  dashscopeApiKey: ''
 }
 
 export type AppSettings = typeof settings

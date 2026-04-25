@@ -136,7 +136,45 @@ const api = {
   },
 
   // Select screenshot save directory
-  selectScreenshotDir: () => ipcRenderer.invoke('selectScreenshotDir') as Promise<string | null>
+  selectScreenshotDir: () => ipcRenderer.invoke('selectScreenshotDir') as Promise<string | null>,
+
+  // Transcription
+  startTranscription: (apiKey: string) => ipcRenderer.invoke('start-transcription', apiKey),
+  stopTranscription: () => ipcRenderer.invoke('stop-transcription'),
+  sendTranscriptionAudioChunk: (chunk: ArrayBuffer) =>
+    ipcRenderer.send('transcription-audio-chunk', chunk),
+  getTranscriptionText: () => ipcRenderer.invoke('get-transcription-text') as Promise<string>,
+
+  onToggleTranscription: (callback: () => void) => {
+    ipcRenderer.on('toggle-transcription', callback)
+  },
+  removeToggleTranscriptionListener: () => {
+    ipcRenderer.removeAllListeners('toggle-transcription')
+  },
+  onTranscriptionText: (callback: (data: { text: string; isPartial: boolean }) => void) => {
+    ipcRenderer.on('transcription-text', (_event, data) => callback(data))
+  },
+  removeTranscriptionTextListener: () => {
+    ipcRenderer.removeAllListeners('transcription-text')
+  },
+  onTranscriptionError: (callback: (message: string) => void) => {
+    ipcRenderer.on('transcription-error', (_event, message) => callback(message))
+  },
+  removeTranscriptionErrorListener: () => {
+    ipcRenderer.removeAllListeners('transcription-error')
+  },
+  onTranscriptionStopped: (callback: () => void) => {
+    ipcRenderer.on('transcription-stopped', callback)
+  },
+  removeTranscriptionStoppedListener: () => {
+    ipcRenderer.removeAllListeners('transcription-stopped')
+  },
+  onTranscriptionCleared: (callback: () => void) => {
+    ipcRenderer.on('transcription-cleared', callback)
+  },
+  removeTranscriptionClearedListener: () => {
+    ipcRenderer.removeAllListeners('transcription-cleared')
+  }
 }
 
 export type MainAPI = typeof api

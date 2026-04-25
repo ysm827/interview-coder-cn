@@ -50,6 +50,27 @@ const faqs = [
         。窗口右下角会显示当前状态。
       </span>
     )
+  },
+  {
+    question: '语音转录功能是什么？如何使用？',
+    answer: (
+      <span>
+        语音转录功能可以实时将面试官的语音或题目朗读转为文字，辅助 AI
+        更好地理解题意。使用前需在「设置」中配置百炼平台 API Key，然后按下
+        <ShortcutRenderer shortcut={`${platformAlt}+T`} className="text-xs mx-1" />
+        开始/暂停转录。转录文本会在截图时自动附带提交给 AI。
+      </span>
+    )
+  },
+  {
+    question: '转录的文本可以单独清除吗？',
+    answer: (
+      <span>
+        可以。按下
+        <ShortcutRenderer shortcut={`${platformAlt}+Shift+T`} className="text-xs mx-1" />
+        即可清除当前转录文本，清除后的文本不会提交给 AI。截图时也会自动清除已有转录文本。
+      </span>
+    )
   }
 ]
 

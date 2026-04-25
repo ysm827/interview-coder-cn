@@ -14,6 +14,8 @@ interface Settings {
 
   screenshotAutoSave: boolean
   screenshotDir: string
+
+  dashscopeApiKey: string
 }
 
 interface SettingsStore extends Settings {
@@ -32,7 +34,9 @@ const defaultSettings: Settings = {
   opacity: 0.8,
 
   screenshotAutoSave: false,
-  screenshotDir: ''
+  screenshotDir: '',
+
+  dashscopeApiKey: ''
 }
 
 export const useSettingsStore = create<SettingsStore>()(

@@ -10,6 +10,7 @@ Key capabilities:
 - Mouse passthrough mode (window ignores mouse events)
 - Multi-screenshot conversation continuity (append screenshots to existing context)
 - Follow-up questions within the same conversation
+- Real-time speech transcription (DashScope Fun-ASR) — transcribed text is attached to screenshots when sent to AI
 - Configurable AI provider (OpenAI, SiliconFlow, OpenRouter, or any OpenAI-compatible API)
 
 ## Tech Stack
@@ -19,7 +20,7 @@ Key capabilities:
 | Framework | Electron 37 (electron-vite 4) |
 | Frontend | React 19, TypeScript 5.8 |
 | Styling | Tailwind CSS v4, shadcn/ui (New York style), Radix primitives |
-| State | Zustand 5 (4 stores, 2 with localStorage persistence) |
+| State | Zustand 5 (5 stores, 2 with localStorage persistence) |
 | Routing | react-router v7 (HashRouter, 3 routes) |
 | AI | Vercel AI SDK (`ai` + `@ai-sdk/openai`), streaming via `streamText()` |
 | Build | electron-vite (Vite 7), electron-builder 25 |
@@ -37,6 +38,7 @@ src/
 │   ├── settings.ts          # App settings object + IPC handlers
 │   ├── state.ts             # App state object + IPC handlers
 │   ├── take-screenshot.ts   # desktopCapturer → base64 PNG
+│   ├── transcription.ts     # DashScope WebSocket real-time speech-to-text
 │   ├── auto-updater.ts      # electron-updater (non-macOS only)
 │   ├── prompts.md           # System prompt for AI (copied to build output via vite-plugin-static-copy)
 │   └── index.d.ts           # global.mainWindow type declaration
@@ -49,10 +51,11 @@ src/
         ├── main.tsx          # React root render
         ├── App.tsx           # Router + settings sync + shortcut init + Toaster
         ├── coder/            # Main page: screenshot display + AI solution stream
-        │   ├── index.tsx     # CoderPage layout + state sync
+        │   ├── index.tsx     # CoderPage layout + state sync + transcription lifecycle
         │   ├── AppHeader.tsx # Draggable title bar with nav buttons
         │   ├── AppContent.tsx# Screenshots gallery + markdown solution + error banner
         │   ├── AppStatusBar.tsx    # Loading indicator, follow-up dialog, shortcut hints
+        │   ├── TranscriptionBar.tsx # Absolute-positioned real-time transcription overlay
         │   └── PrerequisitesChecker.tsx  # Modal for API key setup
         ├── settings/         # Settings page
         │   ├── index.tsx     # AI config, coding, appearance, shortcuts, privacy
@@ -72,12 +75,14 @@ src/
         │   ├── store/        # Zustand stores
         │   │   ├── app.ts       # ignoreMouse state, synced from main process
         │   │   ├── settings.ts  # API config, model, language, opacity (persisted v4)
-        │   │   ├── shortcuts.ts # Shortcut bindings (persisted v3, with migration)
-        │   │   └── solution.ts  # Loading state, solution chunks, screenshots, errors
-        │   └── utils/
-        │       ├── index.ts     # cn() helper, getCloneableFields()
-        │       ├── env.ts       # isMac, platformAlt
-        │       └── keyboard.ts  # Accelerator string conversion
+        │   │   ├── shortcuts.ts # Shortcut bindings (persisted v5, with migration)
+        │   │   ├── solution.ts  # Loading state, solution chunks, screenshots, errors
+        │   │   └── transcription.ts # Transcription state: isTranscribing, text, error
+        │   ├── utils/
+        │   │   ├── index.ts     # cn() helper, getCloneableFields()
+        │   │   ├── env.ts       # isMac, platformAlt
+        │   │   └── keyboard.ts  # Accelerator string conversion
+        │   └── audio-capture.ts # System audio capture via getDisplayMedia for transcription
         └── assets/
             ├── base.css      # Tailwind @import, CSS variables, app layout styles
             └── main.css      # Tailwind + typography plugin + theme variables (oklch)
@@ -134,6 +139,8 @@ src/
 - `initShortcuts` / `getShortcuts` / `updateShortcuts` — shortcut management
 - `stopSolutionStream` — abort current AI stream
 - `sendFollowUpQuestion` — follow-up within conversation
+- `start-transcription` / `stop-transcription` — speech transcription lifecycle
+- `get-transcription-text` / `clear-transcription-text` — read/clear accumulated text
 
 **Main → Renderer (send):**
 - `sync-app-state` — push state changes (e.g., mouse ignore toggle)
@@ -141,14 +148,17 @@ src/
 - `solution-clear` / `solution-chunk` / `solution-complete` / `solution-stopped` / `solution-error` — AI streaming lifecycle
 - `ai-loading-start` / `ai-loading-end` — loading state
 - `scroll-page-up` / `scroll-page-down` — keyboard-driven scroll
+- `toggle-transcription` — trigger start/stop transcription from shortcut
+- `transcription-text` / `transcription-error` / `transcription-stopped` / `transcription-cleared` — transcription events
 
 ### Zustand Stores
 
 | Store | File | Persisted | Key State |
 |-------|------|-----------|-----------|
-| `useSettingsStore` | `lib/store/settings.ts` | Yes (v4) | `apiBaseURL`, `apiKey`, `model`, `customModels`, `codeLanguage`, `opacity`, `customPrompt` |
-| `useShortcutsStore` | `lib/store/shortcuts.ts` | Yes (v3) | `shortcuts` (action → key mapping with categories) |
+| `useSettingsStore` | `lib/store/settings.ts` | Yes (v4) | `apiBaseURL`, `apiKey`, `model`, `customModels`, `codeLanguage`, `opacity`, `customPrompt`, `dashscopeApiKey` |
+| `useShortcutsStore` | `lib/store/shortcuts.ts` | Yes (v5) | `shortcuts` (action → key mapping with categories) |
 | `useSolutionStore` | `lib/store/solution.ts` | No | `isLoading`, `solutionChunks`, `screenshotData`, `errorMessage` |
+| `useTranscriptionStore` | `lib/store/transcription.ts` | No | `isTranscribing`, `transcriptionText`, `errorMessage` |
 | `useAppStore` | `lib/store/app.ts` | No | `ignoreMouse` |
 
 Settings are bidirectionally synced: renderer persists to localStorage, and on mount syncs to main process via `updateAppSettings()`. Main process `.env` values serve as initial defaults only.
@@ -179,6 +189,16 @@ The app is designed to be invisible to screen-sharing software:
 - New requests automatically abort previous streams
 - User can manually stop via shortcut or UI button
 - Abort reason determines which IPC event to send (`solution-stopped` for user, silent for new-request)
+
+### Real-time Speech Transcription
+
+- Uses DashScope (Alibaba Cloud) Fun-ASR real-time ASR via WebSocket (`src/main/transcription.ts`)
+- Requires a separate `dashscopeApiKey` configured in settings
+- Audio is captured in the renderer via `getDisplayMedia()` (system audio), downsampled to 16kHz PCM, and streamed to main process via IPC
+- `TranscriptionBar` is absolute-positioned at the top of the coder page, shows up to 3 lines with auto-scroll
+- On screenshot (`takeScreenshot` / `appendScreenshot`), accumulated transcription text is automatically attached to the AI prompt, then cleared
+- `clearTranscription` shortcut clears text without submitting to AI
+- Transcription shortcuts are disabled in settings UI when `dashscopeApiKey` is not configured
 
 ### Shortcut System
 

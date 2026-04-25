@@ -7,6 +7,7 @@ import { saveScreenshotToDisk } from './save-screenshot'
 import { getSolutionStream, getFollowUpStream, getGeneralStream } from './ai'
 import { state } from './state'
 import { settings } from './settings'
+import { getTranscriptionText, clearTranscriptionText } from './transcription'
 
 /**
  * Extract meaningful error message from API errors
@@ -253,13 +254,20 @@ const callbacks: Record<string, () => void> = {
     const screenshotData = await takeScreenshot()
     if (screenshotData && mainWindow && !mainWindow.isDestroyed()) {
       saveScreenshotToDisk(screenshotData)
+      const transcriptionText = getTranscriptionText()
+      if (transcriptionText) {
+        clearTranscriptionText()
+        mainWindow.webContents.send('transcription-cleared')
+      }
       conversationMessages = [
         {
           role: 'user',
           content: [
             {
               type: 'text',
-              text: `这是屏幕截图`
+              text: transcriptionText
+                ? `这是语音转录内容：\n${transcriptionText}\n\n同时附上屏幕截图：`
+                : '这是屏幕截图'
             },
             {
               type: 'image',
@@ -285,7 +293,10 @@ const callbacks: Record<string, () => void> = {
       let streamStarted = false
       let assistantResponse = ''
       try {
-        const solutionStream = getSolutionStream(screenshotData, streamContext.controller.signal)
+        const solutionStream = getSolutionStream(
+          conversationMessages,
+          streamContext.controller.signal
+        )
         streamStarted = true
         try {
           for await (const chunk of solutionStream) {
@@ -361,13 +372,20 @@ const callbacks: Record<string, () => void> = {
     const screenshotData = await takeScreenshot()
     if (screenshotData && mainWindow && !mainWindow.isDestroyed()) {
       saveScreenshotToDisk(screenshotData)
+      const transcriptionText = getTranscriptionText()
+      if (transcriptionText) {
+        clearTranscriptionText()
+        mainWindow.webContents.send('transcription-cleared')
+      }
       // Append new image message to conversation
       const newUserMessage: ModelMessage = {
         role: 'user',
         content: [
           {
             type: 'text',
-            text: '这是下一部分截图，请结合之前所有截图和分析，继续完整解答整个题目，不要遗漏任何信息。'
+            text: transcriptionText
+              ? `这是下一部分截图和语音转录内容：\n${transcriptionText}\n请结合之前所有截图和分析，继续分析解答，不要遗漏任何信息。`
+              : '这是下一部分截图，请结合之前所有截图和分析，继续分析解答，不要遗漏任何信息。'
           },
           {
             type: 'image',
@@ -512,6 +530,19 @@ const callbacks: Record<string, () => void> = {
     if (!mainWindow || mainWindow.isDestroyed()) return
     const [x, y] = mainWindow.getPosition()
     mainWindow.setPosition(x + MOVE_STEP, y)
+  },
+
+  toggleTranscription: () => {
+    const mainWindow = global.mainWindow
+    if (!mainWindow || mainWindow.isDestroyed() || !state.inCoderPage) return
+    mainWindow.webContents.send('toggle-transcription')
+  },
+
+  clearTranscription: () => {
+    const mainWindow = global.mainWindow
+    if (!mainWindow || mainWindow.isDestroyed() || !state.inCoderPage) return
+    clearTranscriptionText()
+    mainWindow.webContents.send('transcription-cleared')
   }
 }
 

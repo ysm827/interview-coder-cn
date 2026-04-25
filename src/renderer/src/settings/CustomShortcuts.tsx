@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import ShortcutRenderer from '@/components/ShortcutRenderer'
 import { isModifierKey, getShortcutAccelerator } from '@/lib/utils/keyboard'
 import { useShortcutsStore } from '@/lib/store/shortcuts'
+import { useSettingsStore } from '@/lib/store/settings'
 
 const ShortcutsContext = createContext<{
   recordingAction: string | null
@@ -15,6 +16,7 @@ const ShortcutsContext = createContext<{
 
 export function CustomShortcuts() {
   const { shortcuts, updateShortcut } = useShortcutsStore()
+  const { dashscopeApiKey } = useSettingsStore()
   const [recordingAction, setRecordingAction] = useState<string | null>(null)
 
   const onShortcutChange = useCallback(
@@ -79,7 +81,23 @@ export function CustomShortcuts() {
             description="在当前对话中追加截图并生成解题建议，适用于长题目等场景"
             shortcut="appendScreenshot"
           />
-          <Shortcut label="停止生成" shortcut="stopSolutionStream" />
+          <Shortcut
+            label="停止生成"
+            description="打断当前正在生成的解题建议"
+            shortcut="stopSolutionStream"
+          />
+          <Shortcut
+            label="语音转录"
+            description="开始/暂停实时语音转录"
+            shortcut="toggleTranscription"
+            disabled={!dashscopeApiKey}
+          />
+          <Shortcut
+            label="清除转录文本"
+            description="清除已转录的文本（不会提交给AI）"
+            shortcut="clearTranscription"
+            disabled={!dashscopeApiKey}
+          />
         </div>
 
         {/* Navigation */}
@@ -105,11 +123,13 @@ export function CustomShortcuts() {
 function Shortcut({
   label,
   description,
-  shortcut: shortcutAction
+  shortcut: shortcutAction,
+  disabled
 }: {
   label: string
   description?: string
   shortcut: string
+  disabled?: boolean
 }) {
   const { shortcuts } = useShortcutsStore()
   const { recordingAction, setRecordingAction } = useContext(ShortcutsContext)
@@ -117,7 +137,9 @@ function Shortcut({
   const isRecording = recordingAction === shortcutAction
 
   return shortcut ? (
-    <div className="flex items-center justify-between">
+    <div
+      className={`flex items-center justify-between${disabled ? ' opacity-40 pointer-events-none' : ''}`}
+    >
       <div className="flex gap-2 items-center">
         <label className="text-sm font-medium">{label}</label>
         {description && <p className="text-xs font-light">{description}</p>}

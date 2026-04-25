@@ -13,7 +13,7 @@ function getModel(_settings: AppSettings) {
   return _settings.model || fallbackModel
 }
 
-export function getSolutionStream(base64Image: string, abortSignal?: AbortSignal) {
+export function getSolutionStream(messages: ModelMessage[], abortSignal?: AbortSignal) {
   const openai = createOpenAI({
     baseURL: settings.apiBaseURL,
     apiKey: settings.apiKey
@@ -23,21 +23,7 @@ export function getSolutionStream(base64Image: string, abortSignal?: AbortSignal
     model: openai.chat(getModel(settings)),
     system:
       settings.customPrompt || PROMPT_SYSTEM + `\n使用编程语言：${settings.codeLanguage} 解答。`,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `这是屏幕截图`
-          },
-          {
-            type: 'image',
-            image: base64Image
-          }
-        ]
-      }
-    ],
+    messages,
     abortSignal,
     onError: (err) => {
       throw err.error ?? err

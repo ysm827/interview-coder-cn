@@ -14,7 +14,7 @@
 
 ### 核心能力
 
-- 通过快捷键抓取屏幕内容，并发送给大模型进行分析
+- 通过快捷键抓取屏幕内容、电脑声音等信息，发送给大模型进行分析
 - 窗口在屏幕分享时，不会被发现
 - 窗口置顶半透明展示，不会导致原页面失焦，从而规避“跳出网页”检测
 
@@ -45,27 +45,38 @@
 $ npm install
 ```
 
-### 2. 配置 API Key
+### 2. 启动程序开始正常使用
+
+```bash
+$ npm run dev
+```
+
+### 3. 配置 API Key
 
 > 注意，应大家的要求，从 1.6 版本开始，添加了对「硅基流动」API 的支持，方便大家使用国内模型。
 
-在项目根目录创建一个 `.env` 文件，并配置 `API_BASE_URL` 和 `API_KEY`。
+启动程序后，进入「设置」页面，配置 `API Base URL` 和 `API Key`。
 
-API_BASE_URL 和 API_KEY 需要从支持 OpenAI API 的代理服务商处获取。如国内的 [硅基流动](https://cloud.siliconflow.cn/i/SG8C0772) 或国外的 [OpenRouter](https://openrouter.ai/) 等服务商，支持支付宝付款。
+API 地址和 API Key 需要从支持 OpenAI API 的代理服务商处获取。如国内的 [硅基流动](https://cloud.siliconflow.cn/i/SG8C0772) 或国外的 [OpenRouter](https://openrouter.ai/) 等服务商，支持支付宝付款。
 
-当然，如果你（人在海外）可以直接使用 OpenAI 官方的 API 更好，只需要配置 `API_KEY` 就够了。
+当然，如果你（人在海外）可以直接使用 OpenAI 官方的 API 更好，只需要配置 `API Key` 就够了。
+
+> 也可以在项目根目录创建 `.env` 文件预配置，程序启动后会自动读取作为默认值。
 
 ```env
 API_BASE_URL="https://openrouter.ai/api/v1" # 聚合服务的 API 地址，这里以 OpenRouter 为例
 API_KEY="sk-1234567890" # 代理服务商的 API Key，这里只是示例，需要改成你自己的
 ```
 
-### 3. 启动程序开始正常使用
+### 4. （可选）配置语音转录
 
-```bash
-$ npm run dev
-```
+语音转录功能可以实时将面试官的语音转为文字，并在截图时一起提交给 AI 辅助分析题意。
 
+目前该功能固定使用 Fun-ASR 模型 (0.02元/分钟，新用户有10小时免费额度)，需要配置阿里云百炼平台的 API Key：
+
+1. 访问 [百炼平台控制台](https://help.aliyun.com/zh/model-studio/get-api-key) 注册并创建 API Key
+2. 在应用「设置」页面的「语音转录」部分填入 API Key
+3. 使用快捷键（默认 `Alt+T` / `Ctrl+T`）开始/暂停语音转录
 
 ## 关于隐身能力的说明
 
